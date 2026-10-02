@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI Song Maker</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;background:#090b16;color:#fff}
+.container{max-width:900px;margin:auto;padding:24px 16px}.logo{font-size:30px;font-weight:800}.tag{color:#a9b0c8;margin:6px 0 24px}
+.card{background:#131728;border:1px solid #282f49;border-radius:20px;padding:22px}
+label{display:block;font-weight:700;margin:18px 0 8px}
+textarea,select{width:100%;padding:14px;border-radius:12px;border:1px solid #333b58;background:#0d1120;color:#fff;font-size:16px}
+textarea{min-height:120px;resize:vertical}
+.row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+button{width:100%;margin-top:20px;padding:15px;border:0;border-radius:12px;background:#7c5cff;color:#fff;font-size:17px;font-weight:700;cursor:pointer}
+button:disabled{opacity:.55}.status{text-align:center;color:#aeb6d0;margin-top:16px;min-height:24px}
+.player{display:none;margin-top:20px;padding:16px;background:#0d1120;border-radius:14px}
+audio{width:100%}.note{font-size:13px;color:#7f89a7;margin-top:15px;text-align:center}
+@media(max-width:650px){.row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="logo">🎵 AI Song Maker</div>
+  <div class="tag">Describe your song. Turn your idea into an original track.</div>
+
+  <div class="card">
+    <label for="prompt">Song prompt</label>
+    <textarea id="prompt" placeholder="Example: 1 minute emotional Hindi breakup song, soft piano and guitar, male vocal, cinematic mood..."></textarea>
+
+    <div class="row">
+      <div>
+        <label for="language">Language</label>
+        <select id="language"><option>Hindi</option><option>Hinglish</option><option>English</option><option>Gujarati</option><option>Marathi</option></select>
+      </div>
+      <div>
+        <label for="mood">Mood</label>
+        <select id="mood"><option>Emotional</option><option>Romantic</option><option>Sad</option><option>Energetic</option><option>Chill</option><option>Devotional</option></select>
+      </div>
+      <div>
+        <label for="duration">Duration</label>
+        <select id="duration"><option>30 seconds</option><option selected>60 seconds</option><option>2 minutes</option><option>3 minutes</option></select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="voice">Vocal</label>
+        <select id="voice"><option>Male</option><option>Female</option><option>Instrumental</option></select>
+      </div>
+      <div>
+        <label for="genre">Genre</label>
+        <select id="genre"><option>Pop</option><option>Bollywood-inspired</option><option>Lo-fi</option><option>Rock</option><option>Acoustic</option><option>Hip-hop</option></select>
+      </div>
+      <div>
+        <label for="lyrics">Lyrics</label>
+        <select id="lyrics"><option>Generate automatically</option><option>Use my lyrics</option></select>
+      </div>
+    </div>
+
+    <button id="generate">✨ Generate Song</button>
+    <div id="status" class="status"></div>
+
+    <div id="player" class="player">
+      <audio id="audio" controls></audio>
+      <button id="download">⬇️ Download Song</button>
+    </div>
+
+    <div class="note">MVP frontend. Real AI audio generation will be connected through a backend/API.</div>
+  </div>
+</div>
+
+<script>
+const generate=document.getElementById('generate');
+const status=document.getElementById('status');
+const player=document.getElementById('player');
+const audio=document.getElementById('audio');
+const download=document.getElementById('download');
+let audioUrl=null;
+
+generate.onclick=async()=>{
+  const prompt=document.getElementById('prompt').value.trim();
+  if(!prompt){status.textContent='Please enter a song idea first.';return;}
+
+  generate.disabled=true;
+  player.style.display='none';
+  status.textContent='⏳ AI is creating your song... Please wait.';
+
+  try {
+    const response=await fetch('/api/generate-song',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        prompt,
+        language:document.getElementById('language').value,
+        mood:document.getElementById('mood').value,
+        duration:document.getElementById('duration').value,
+        voice:document.getElementById('voice').value,
+        genre:document.getElementById('genre').value,
+        lyrics:document.getElementById('lyrics').value
+      })
+    });
+
+    if(!response.ok){
+      let msg='Song generation failed.';
+      try { const data=await response.json(); msg=data.error || msg; } catch {}
+      throw new Error(msg);
+    }
+
+    const blob=await response.blob();
+    if(audioUrl) URL.revokeObjectURL(audioUrl);
+    audioUrl=URL.createObjectURL(blob);
+    audio.src=audioUrl;
+    download.onclick=()=>{
+      const a=document.createElement('a');
+      a.href=audioUrl;
+      a.download='ai-song.mp3';
+      a.click();
+    };
+    player.style.display='block';
+    status.textContent='✅ Your song is ready!';
+  } catch(error) {
+    status.textContent='❌ '+error.message;
+  } finally {
+    generate.disabled=false;
+  }
+};
+</script>
+</body>
+</html>
