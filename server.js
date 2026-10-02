@@ -63,7 +63,7 @@ app.post('/api/generate-song', async (req, res) => {
         music_length_ms: durationToMs(duration),
         model_id: 'music_v2_5',
         force_instrumental: instrumental,
-        output_format: 'mp3_44100_128'
+        
       })
     });
 
